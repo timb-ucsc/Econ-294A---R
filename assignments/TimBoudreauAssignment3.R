@@ -46,16 +46,18 @@ print(nrow(df.ex.3))
 ## Question 3
 ##############
 
+# arrange data set by year and month within each year
 df.ex.3a <- df.ex %>%
   arrange(year, month)
-head(df.ex.3a)
 
 ##############
 ## Question 4
 ##############
 
+# select every variable from year to age
 df.ex.4a <- df.ex %>%
   select(year:age)
+# select every variable that starts with an "i then print distinct state names
 df.ex.4b <- df.ex %>%
   select(year, month, starts_with("i"))
 distinct(select(df.ex, state))
@@ -64,15 +66,54 @@ distinct(select(df.ex, state))
 ## Question 5
 ##############
 
+# create two function - one for standardizing and one for normalizing
 stndz <- function(x) {
   (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
 }
 
-nrmlz <- function(X) {
+nrmlz <- function(x) {
   (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm= TRUE))
 }
 
+# use the functions to create new columns
 df.ex.5a <- df.ex %>%
-  mutate( rw.stndz = stndz(df.ex), rw_nrmlz = nrmlz(df.ex))
+  group_by(year, month) %>%
+  mutate( rw.stndz = stndz(rw), rw_nrmlz = nrmlz(rw))
 
+df.ex.5b <- df.ex %>%
+  group_by(year, month) %>%
+  mutate( rw.stndz = stndz(rw), rw_nrmlz = nrmlz(rw), count = n())
 
+##############
+## Question 6
+##############
+
+# create dataset with columns of summary statistics
+df.ex.6 <- df.ex %>%
+  group_by(year, month, state) %>%
+  summarise(
+    rw_min = min(rw, na.rm = TRUE),
+    rw_quart1 = quantile(rw, .25, na.rm = TRUE),
+    rw_mean = mean(rw, na.rm = TRUE),
+    rw_median = median(rw, na.rm = TRUE),
+    rw_quart3 = quantile(rw, .75, na.rm = TRUE),
+    rw_max = max(rw, na.rm = TRUE),
+    rw_count = n()
+  )
+
+# find the largest mean wage (in state year and month)
+df.ex.6 %>%
+  ungroup() %>%
+  arrange(rw_mean) %>%
+  select(year, month, state, rw_mean) %>%
+  filter(rw_mean == max(rw_mean))
+
+##############
+## Question 7
+##############
+
+# sort state alphabetically and year and month ascending
+df.ex.7a <- df.ex %>%
+  ungroup() %>%
+  arrange(year, month, as.character(state)) %>%
+  select(year, month, state)
