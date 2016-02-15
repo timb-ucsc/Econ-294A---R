@@ -82,10 +82,10 @@ head(flights.5b, 5)
 ## Question 6
 ##############
 
-flights.df %>%
+flights.df <- flights.df %>%
   mutate( speed = dist/(time/(60)), delta = dep_delay - arr_delay)
 
-flights.6a <-flights.df %>%
+flights.6a <- flights.df %>%
   arrange(desc(speed))
 head(flights.6a, 5)
 
@@ -104,9 +104,78 @@ head(flights.6c, 5)
 flights.7a <- flights.df %>%
   group_by(carrier) %>%
   summarize( 
-    cancel <- cancelled
-    total <- n()
+    cancel <- sum(cancelled, na.rm = TRUE),
+    total <- n(),
+    percent_cancel <- 100*sum(cancelled, na.rm = TRUE)/n(),
+    min_delta <- min(delta, na.rm = TRUE),
+    quart1_delta = quantile(delta, .25, na.rm = TRUE),
+    median_delta = median(delta, na.rm = TRUE),
+    mean_delta = mean(delta, na.rm = TRUE),
+    quart3_delta = quantile(delta, .75, na.rm = TRUE),
+    quart90p_delta = quantile(delta, .90, na.rm = TRUE),
+    max_delta = max(delta, na.rm = TRUE) ) %>%
+  ungroup()
+
+flights.7a <- flights.7a %>%
+  arrange(desc(flights.7a$percent_cancel))
+print(flights.7a)
+
+################################### how to get table
+
+cat("\n\nThis code does the following:\n
+      1) filters to keep all non-na delayed departure flights
+      2) groups the flights and delayed flights by date
+      3) creates a mean-departure-delay variable and a total flihgts variable
+      4) keeps airlines with data for more than 10 flights
+      5) creates a data frame with the date
+      mean delayed departure flights and total flights stored in it.\n\n")
+
+day_delay <- flights.df %>%
+  dplyr::filter(!is.na(dep_delay)) %>%
+  group_by(date) %>%
+  summarize(
+    delay = mean(dep_delay),
+    n = n()
   )
+    
+##############
+## Question 8
+##############
+
+day_delay <- day_delay %>%
+  mutate(diff.delay = delay - lag(delay, 1, order_by=date)) %>%
+  arrange(desc(diff.delay))
+head(day_delay, 5)
+
+##############
+## Question 9
+##############
+
+dest_delay <- flights.df %>%
+  group_by(dest) %>%
+  summarize(
+    mean.arr = mean(arr_delay, na.rm=TRUE),
+    total = n()
+  )
+
+airports.df <- airports.df %>%
+  rename(dest=iata, name=airport)
+
+df.9a <- left_join(dest_delay, airports.df, by=c("dest"="dest"))
+df.9b <- inner_join(dest_delay, airports.df, by=c("dest"="dest"))
+df.9c <- right_join(dest_delay, airports.df, by=c("dest"="dest"))
+df.9d <- full_join(dest_delay, airports.df, by=c("dest"="dest"))
+
+cat("\nObservation Counts:\n\nLeft Join:  ", nrow(df.9a), 
+    "\nInner Join: ", nrow(df.9b), "\nRight Join: ", nrow(df.9c), 
+    " NAs: ", sum(is.na(df.9c$mean.arr)), " Difference: ", 
+    nrow(df.9c)-sum(is.na(df.9c$mean.arr)), "\nFull Join:  ", nrow(df.9d), 
+    " NAs: ", sum(is.na(df.9d$mean.arr)), " Difference: ", 
+    nrow(df.9d)-sum(is.na(df.9d$mean.arr)),"\n",
+"\nRight Join merges across the right data set,
+which here has more destinations than the left set.
+Full join joins everything, total.\n")
+
 
 
 
