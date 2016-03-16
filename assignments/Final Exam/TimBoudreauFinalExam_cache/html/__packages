@@ -1,0 +1,7 @@
+base
+nycflights13
+DBI
+RSQLite
+dplyr
+ggvis
+ggplot2
